@@ -10,6 +10,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Build with Makefile
+    - name: Install Dependencies & Setup Theos
       run: |
+        # Lệnh này sẽ cài đặt công cụ ldid để ký tên file
+        brew install ldid
+        
+        sudo mkdir -p /var/mobile/theos
+        sudo chown -R $USER:staff /var/mobile/theos
+        git clone --recursive https://github.com/theos/theos.git /var/mobile/theos
+
+    - name: Patch and Prepare
+      run: |
+        touch x2nios.h
+        find . -name "Makefile" -exec sed -i '' 's/-Werror//g' {} +
+        find . -name "*.mk" -exec sed -i '' 's/-Werror//g' {} +
+
+    - name: Build
+      run: |
+        export ADDITIONAL_CFLAGS="-w"
+        export ADDITIONAL_OBJCFLAGS="-w"
         make
+
+    - name: Upload Dylib Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ModMenu-Dylib
+        path: |
+          *.dylib
+          .theos/obj/debug/*.dylib
+          obj/*.dylib
