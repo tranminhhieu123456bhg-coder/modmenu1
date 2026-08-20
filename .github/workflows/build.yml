@@ -1,10 +1,26 @@
-- name: Install Dependencies & Setup Theos
+name: Build iOS Dylib
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Dependencies & Setup Theos
       run: |
-        brew untap aws/tap || true  # Thêm dòng này để dọn dẹp lỗi Homebrew
+        brew untap aws/tap || true
         brew install ldid
         sudo mkdir -p /var/mobile/theos
         sudo chown -R $USER:staff /var/mobile/theos
         git clone --recursive https://github.com/theos/theos.git /var/mobile/theos
+
+    - name: Download iOS SDKs
+      run: |
+        git clone https://github.com/theos/sdks.git /var/mobile/theos/sdks
 
     - name: Patch and Prepare
       run: |
@@ -14,7 +30,19 @@
 
     - name: Build
       run: |
-        export THEOS=/var/mobile/theos # BẮT BUỘC PHẢI THÊM DÒNG NÀY
+        export THEOS=/var/mobile/theos
         export ADDITIONAL_CFLAGS="-w"
         export ADDITIONAL_OBJCFLAGS="-w"
         make
+
+    - name: Collect Dylib Files
+      run: |
+        mkdir -p output_dylibs
+        find . -name "*.dylib" -exec cp {} output_dylibs/ \;
+        ls -la output_dylibs/
+
+    - name: Upload Dylib Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ModMenu-Dylib
+        path: output_dylibs/*.dylib
