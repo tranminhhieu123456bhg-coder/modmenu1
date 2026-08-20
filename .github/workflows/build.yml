@@ -1,6 +1,9 @@
 name: Build iOS Dylib
 
-on: [push]
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -10,34 +13,33 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Install Dependencies & Setup Theos
+    - name: Setup Theos & SDKs
       run: |
-        brew untap aws/tap || true
         brew install ldid
-        sudo mkdir -p /var/mobile
-        sudo chown -R $USER:staff /var/mobile
-        sudo rm -rf /var/mobile/theos
-        git clone --recursive https://github.com/theos/theos.git /var/mobile/theos
+        export THEOS=~/theos
+        rm -rf $THEOS
+        git clone --recursive https://github.com/theos/theos.git $THEOS
+        git clone https://github.com/theos/sdks.git $THEOS/sdks
 
-    - name: Download iOS SDKs
-      run: |
-        rm -rf /var/mobile/theos/sdks
-        git clone https://github.com/theos/sdks.git /var/mobile/theos/sdks
-
-    - name: Patch and Prepare
+    - name: Patch Makefiles (Bypass Errors)
       run: |
         touch x2nios.h
         find . -name "Makefile" -exec sed -i '' 's/-Werror//g' {} +
         find . -name "*.mk" -exec sed -i '' 's/-Werror//g' {} +
 
-    - name: Build
+    - name: Build Dylib
       run: |
-        export THEOS=/var/mobile/theos
+        export THEOS=~/theos
         export PATH="$THEOS/bin:$PATH"
-        export ADDITIONAL_CFLAGS="-w"
-        export ADDITIONAL_OBJCFLAGS="-w"
+        export IGNORE_WARNINGS=1
+        
+        # Thêm cờ ép bỏ qua lỗi thư viện zlib trong khối extern C
+        export ADDITIONAL_CFLAGS="-w -Wno-module-import-in-extern-c"
+        export ADDITIONAL_OBJCFLAGS="-w -Wno-module-import-in-extern-c"
+        export ADDITIONAL_CCFLAGS="-w -std=c++11 -Wno-module-import-in-extern-c"
+        
         make clean || true
-        make
+        make all messages=yes
 
     - name: Collect Dylib Files
       run: |
