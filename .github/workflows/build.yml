@@ -14,12 +14,13 @@ jobs:
       run: |
         brew untap aws/tap || true
         brew install ldid
-        sudo mkdir -p /var/mobile/theos
-        sudo chown -R $USER:staff /var/mobile/theos
+        sudo rm -rf /var/mobile/theos
         git clone --recursive https://github.com/theos/theos.git /var/mobile/theos
+        sudo chown -R $USER:staff /var/mobile/theos
 
     - name: Download iOS SDKs
       run: |
+        sudo rm -rf /var/mobile/theos/sdks
         git clone https://github.com/theos/sdks.git /var/mobile/theos/sdks
 
     - name: Patch and Prepare
