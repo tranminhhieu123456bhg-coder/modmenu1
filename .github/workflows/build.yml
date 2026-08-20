@@ -19,6 +19,7 @@ jobs:
         export THEOS=~/theos
         rm -rf $THEOS
         git clone --recursive https://github.com/theos/theos.git $THEOS
+        rm -rf $THEOS/sdks
         git clone https://github.com/theos/sdks.git $THEOS/sdks
 
     - name: Patch Makefiles (Bypass Errors)
@@ -33,7 +34,6 @@ jobs:
         export PATH="$THEOS/bin:$PATH"
         export IGNORE_WARNINGS=1
         
-        # Thêm cờ ép bỏ qua lỗi thư viện zlib trong khối extern C
         export ADDITIONAL_CFLAGS="-w -Wno-module-import-in-extern-c"
         export ADDITIONAL_OBJCFLAGS="-w -Wno-module-import-in-extern-c"
         export ADDITIONAL_CCFLAGS="-w -std=c++11 -Wno-module-import-in-extern-c"
