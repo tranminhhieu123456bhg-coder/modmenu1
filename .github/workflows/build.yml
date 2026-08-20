@@ -12,9 +12,7 @@ jobs:
 
     - name: Install Dependencies & Setup Theos
       run: |
-        # Lệnh này sẽ cài đặt công cụ ldid để ký tên file
         brew install ldid
-        
         sudo mkdir -p /var/mobile/theos
         sudo chown -R $USER:staff /var/mobile/theos
         git clone --recursive https://github.com/theos/theos.git /var/mobile/theos
@@ -31,11 +29,18 @@ jobs:
         export ADDITIONAL_OBJCFLAGS="-w"
         make
 
+    - name: Collect Dylib Files
+      run: |
+        # Tạo một thư mục ngoài sáng để gom hàng
+        mkdir -p output_dylibs
+        # Quét mọi ngóc ngách (kể cả thư mục ẩn .theos) và lôi file .dylib ra ngoài
+        find . -name "*.dylib" -type f -exec cp {} output_dylibs/ \;
+        # In ra danh sách file để dễ kiểm tra trong log
+        echo "Đã gom được các file sau:"
+        ls -la output_dylibs/
+
     - name: Upload Dylib Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ModMenu-Dylib
-        path: |
-          *.dylib
-          .theos/obj/debug/*.dylib
-          obj/*.dylib
+        path: output_dylibs/*.dylib
