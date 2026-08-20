@@ -1,101 +1,46 @@
-#include "imgui.h"
+name: Build iOS Dylib
 
-// Hàm vẽ Giao diện Menu Mod
-void DrawModMenu() {
-    // 1. Cài đặt phong cách (Style & Colors)
-    ImGuiStyle& style = ImGui::GetStyle();
-    style.WindowRounding = 12.0f; // Bo góc viền menu
-    style.FrameRounding = 20.0f;  // Bo góc các nút bấm (Button)
-    
-    // Đặt màu nền đen, viền tím
-    style.Colors[ImGuiCol_WindowBg] = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
-    style.Colors[ImGuiCol_Border] = ImVec4(0.3f, 0.1f, 0.6f, 1.0f);
-    style.WindowBorderSize = 2.0f;
+on: [push, pull_request]
 
-    // 2. Bắt đầu vẽ Cửa sổ Menu
-    ImGui::Begin("MenuModAOV", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize);
+jobs:
+  build:
+    runs-on: macos-latest
 
-    // --- PHẦN HEADER (Tiêu đề) ---
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.6f, 0.4f, 1.0f, 1.0f)); // Màu chữ tím
-    ImGui::SetWindowFontScale(1.3f);
-    ImGui::Text("MENU MOD AOV");
-    ImGui::SetWindowFontScale(1.0f);
-    ImGui::PopStyleColor();
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-    // Nút EXIT ở góc phải
-    ImGui::SameLine(ImGui::GetWindowWidth() - 90); // Đẩy nút Exit sang phải
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.8f, 0.8f, 1.0f)); // Nút xám
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 0.0f, 0.0f, 1.0f));   // Chữ đen
-    if (ImGui::Button(u8"⏻ EXIT", ImVec2(80, 30))) {
-        // CODE XỬ LÝ KHI BẤM NÚT EXIT Ở ĐÂY
-        // Ví dụ: menu_visible = false;
-    }
-    ImGui::PopStyleColor(2);
+    - name: Install Dependencies & Setup Theos
+      run: |
+        brew install ldid
+        sudo mkdir -p /var/mobile/theos
+        sudo chown -R $USER:staff /var/mobile/theos
+        git clone --recursive https://github.com/theos/theos.git /var/mobile/theos
 
-    // Dòng chữ credit nhỏ dưới tiêu đề
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.7f, 1.0f));
-    ImGui::Text("Create By dothanh Also Know With Ctdotech");
-    ImGui::PopStyleColor();
-    
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
+    - name: Patch and Prepare
+      run: |
+        touch x2nios.h
+        find . -name "Makefile" -exec sed -i '' 's/-Werror//g' {} +
+        find . -name "*.mk" -exec sed -i '' 's/-Werror//g' {} +
 
-    // --- PHẦN BODY (Các nút chức năng) ---
-    float btnWidth = 160.0f; // Chiều rộng mỗi nút nhỏ
-    float btnHeight = 45.0f; // Chiều cao nút
-    float fullWidth = (btnWidth * 2) + style.ItemSpacing.x; // Chiều rộng nút to
+    - name: Build
+      run: |
+        export ADDITIONAL_CFLAGS="-w"
+        export ADDITIONAL_OBJCFLAGS="-w"
+        make
 
-    // Hàng 1
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.15f, 0.15f, 1.0f)); // Màu nền nút xám đen
-    if (ImGui::Button(u8"🔗 Mod Qua Link", ImVec2(btnWidth, btnHeight))) {
-        // Code chức năng Mod qua Link
-    }
-    ImGui::SameLine();
-    if (ImGui::Button(u8"📁 Mod Qua File", ImVec2(btnWidth, btnHeight))) {
-        // Code chức năng Mod qua File
-    }
+    - name: Collect Dylib Files
+      run: |
+        # Tạo một thư mục ngoài sáng để gom hàng
+        mkdir -p output_dylibs
+        # Quét mọi ngóc ngách (kể cả thư mục ẩn .theos) và lôi file .dylib ra ngoài
+        find . -name "*.dylib" -type f -exec cp {} output_dylibs/ \;
+        # In ra danh sách file để dễ kiểm tra trong log
+        echo "Đã gom được các file sau:"
+        ls -la output_dylibs/
 
-    // Hàng 2
-    if (ImGui::Button(u8"Mod Sảnh", ImVec2(btnWidth, btnHeight))) {
-        // Code chức năng Mod Sảnh
-    }
-    ImGui::PopStyleColor(); // Bỏ màu xám đen cho nút tiếp theo
-
-    ImGui::SameLine();
-    // Nút Xóa Mod Skin (Màu tím đậm)
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.4f, 0.2f, 0.8f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.5f, 0.3f, 0.9f, 1.0f));
-    if (ImGui::Button(u8"Xóa Mod Skin", ImVec2(btnWidth, btnHeight))) {
-        // Code chức năng Xóa Mod Skin
-    }
-    ImGui::PopStyleColor(2);
-
-    // Hàng 3 (Nút to full màn)
-    ImGui::Spacing();
-    // Nút Đăng xuất nhanh (Màu tím nhạt)
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.6f, 0.9f, 1.0f)); 
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.4f, 0.2f, 0.8f, 1.0f)); // Chữ màu tím đậm
-    if (ImGui::Button(u8"Đăng Xuất Acc Nhanh", ImVec2(fullWidth, btnHeight))) {
-        // Code chức năng Đăng Xuất Nhanh
-    }
-    ImGui::PopStyleColor(2);
-
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-
-    // --- PHẦN FOOTER (Credit dưới cùng) ---
-    const char* footerText = "Create By dothanh Also Know With Ctdotech";
-    float windowWidth = ImGui::GetWindowSize().x;
-    float textWidth = ImGui::CalcTextSize(footerText).x;
-    
-    // Căn giữa dòng chữ footer
-    ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.8f);
-    ImGui::Text("%s", footerText);
-    ImGui::PopStyleVar();
-
-    // Kết thúc vẽ Menu
-    ImGui::End();
-}
+    - name: Upload Dylib Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ModMenu-Dylib
+        path: output_dylibs/*.dylib
